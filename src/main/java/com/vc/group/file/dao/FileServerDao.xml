@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.vc.group.file.dao.FileServerDao" >
+
+  <resultMap id="BaseResultMap" type="com.vc.group.file.entity.FileInfo" >
+    <id column="ID" property="id" jdbcType="NUMERIC"/>
+	<result column="FILE_ID" property="fileId" jdbcType="NUMERIC" />
+	<result column="NAME" property="name" jdbcType="VARCHAR" />
+	<result column="TYPE" property="type" jdbcType="VARCHAR" />
+	<result column="FILE_FORMAT" property="fileFormat" jdbcType="VARCHAR" />
+	<result column="DOWNLOAD_URL" property="downloadUrl" jdbcType="VARCHAR" />
+	<result column="FILE_SOURCE" property="fileSource" jdbcType="NUMERIC" />
+	<result column="FILE_SIZE" property="fileSize" jdbcType="NUMERIC" />
+	<result column="NODE_ID" property="nodeId" jdbcType="NUMERIC" />
+	<result column="FILE_MD5" property="fileMd5" jdbcType="VARCHAR" />
+	<result column="freeSpace" property="freeSpace" jdbcType="NUMERIC"/>
+  </resultMap>
+  
+  <resultMap id="BaseFileNodeMap" type="com.vc.group.file.entity.FileNode" >
+    <id column="ID" property="id" jdbcType="NUMERIC"/>
+	<result column="NODE_ID" property="nodeId" jdbcType="NUMERIC" />
+	<result column="HOST" property="host" jdbcType="VARCHAR" />
+	<result column="PORT" property="port" jdbcType="NUMERIC" />
+	<result column="PATH" property="path" jdbcType="VARCHAR" />
+	<result column="MOUNT_PATH" property="mountPath" jdbcType="VARCHAR" />
+	<result column="IS_PRIMARY" property="isPrimary" jdbcType="VARCHAR" />
+	<result column="IS_BACKUP" property="isBackup" jdbcType="VARCHAR" />
+	<result column="FREE_SPACE" property="freeSpace" jdbcType="NUMERIC" />
+	<result column="FILE_TYPE" property="fileType" jdbcType="VARCHAR" />
+  </resultMap>
+  
+   <select id="getNextFileId" resultType="java.lang.Long" >
+   	 <!--  select fs_file_id_seq.nextval as FILE_ID  from dual  -->
+   	 select ifnull(max(id),0) as FILE_ID  from vc_sys_file_info 
+   </select>
+  
+	<update id="deleteFile" parameterType="java.lang.Long" >
+	    update 
+  	   		vc_sys_file_info 
+  	   set 
+  	   		DEL_FLAG=1,UPDATE_DATE=sysdate() 
+  	   where 
+  	   		FILE_ID = #{fileId,jdbcType=NUMERIC} 
+	 </update>
+  
+    <update id="decreaseNodeFreeSpace" parameterType="com.vc.group.file.entity.FileNode">
+  	   update 
+  	   		VC_SYS_FILE_NODE 
+  	   set 
+  	   		FREE_SPACE=FREE_SPACE-#{freeSpace,jdbcType=NUMERIC},UPDATE_DATE=sysdate() 
+  	   where 
+  	   		ID=#{nodeId,jdbcType=NUMERIC}
+    </update>
+    
+    <update id="updateFileInfo" parameterType="com.vc.group.file.entity.FileInfo">
+    </update>
+  
+	 <insert id="saveFileInfo" parameterType="com.vc.group.file.entity.FileInfo">
+	 	 <!-- <selectKey keyProperty="id" order="BEFORE" resultType="java.lang.Integer">  
+	   　		SELECT AGENCY_SQE.NEXTVAL FROM DUAL   
+	   　   </selectKey> -->
+	  	 insert into 
+	  	 	vc_sys_file_info 
+	  	 	(FILE_ID,NAME,TYPE,FILE_FORMAT,DOWNLOAD_URL,FILE_SOURCE,FILE_SIZE,FILE_MD5,NODE_ID,CREATE_DATE,UPDATE_DATE,DEL_FLAG) 
+	  	 values(
+	  	   <!-- #{id,jdbcType=NUMERIC}, -->
+	       #{fileId,jdbcType=NUMERIC},
+	       #{name,jdbcType=VARCHAR},
+	       #{type,jdbcType=VARCHAR},
+	       #{fileFormat,jdbcType=VARCHAR},
+	       #{downloadUrl,jdbcType=VARCHAR},
+	       #{fileSource,jdbcType=NUMERIC},
+	       #{fileSize,jdbcType=NUMERIC},
+	       #{fileMd5,jdbcType=VARCHAR},
+	       #{nodeId,jdbcType=NUMERIC},
+	       sysdate(),sysdate(),0)
+	 </insert>
+  
+    <!-- 查文件信息 -->
+    <select id="findFileByFileId" parameterType="com.vc.group.file.entity.FileInfo" resultMap="BaseResultMap">
+  	   select 
+  	   		a.ID,a.FILE_ID,a.NAME,a.TYPE,a.FILE_FORMAT,a.DOWNLOAD_URL,a.FILE_SOURCE,a.FILE_SIZE,a.FILE_MD5,a.NODE_ID  
+  	   from 
+  	   		vc_sys_file_info a 
+	   where 
+			a.DEL_FLAG = 0 and a.FILE_ID = #{fileId,jdbcType=NUMERIC} and a.TYPE=#{type,jdbcType=VARCHAR}
+    </select>
+  
+   <!-- 查文件信息列表 -->
+   <select id="findAllFileList" parameterType="com.vc.group.file.entity.FileInfo" resultMap="BaseResultMap">
+   	  select 
+   	  		a.ID,a.FILE_ID,a.NAME,a.TYPE,a.FILE_FORMAT,a.DOWNLOAD_URL,a.FILE_SOURCE,a.FILE_SIZE,a.FILE_MD5,a.NODE_ID  
+   	  from 
+   	  		vc_sys_file_info a 
+	  where 
+		    a.DEL_FLAG = 0 
+   </select>
+   
+    <!-- 查文件节点信息列表 -->
+   <select id="findAllFileNodeList" parameterType="com.vc.group.file.entity.FileNode" resultMap="BaseFileNodeMap">
+   	 	select  
+   	 		ID, NODE_ID ,HOST ,PORT ,PATH, MOUNT_PATH ,IS_PRIMARY, IS_BACKUP, FREE_SPACE, FILE_TYPE 
+   	 	from 
+   	 		vc_sys_file_node 
+   	 	where 
+   	 		DEL_FLAG =0 and IS_PRIMARY = 'TRUE' and FILE_TYPE=#{fileType,jdbcType=VARCHAR}
+   </select>
+   
+    <!-- 查文件节点信息 -->
+   <select id="findFileNode" parameterType="com.vc.group.file.entity.FileNode" resultMap="BaseFileNodeMap">
+   	 	select  
+   	 		ID, NODE_ID ,HOST ,PORT ,PATH, MOUNT_PATH ,IS_PRIMARY, IS_BACKUP, FREE_SPACE, FILE_TYPE 
+   	 	from 
+   	 		vc_sys_file_node 
+   	 	where 
+   	 		DEL_FLAG =0 and IS_PRIMARY = 'TRUE' and FILE_TYPE=#{fileType,jdbcType=VARCHAR}
+   </select>
+  
+</mapper>
